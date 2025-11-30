@@ -1,6 +1,6 @@
 # MultiPath Island-Based Genetic Algorithm for the K-Most Diverse Near-Shortest Paths
 
-**MIBGA** adalah implementasi Python untuk menyelesaikan masalah *K-Most Diverse Near-Shortest Paths* (K-MDNSP) pada jaringan jalan (road networks). Proyek ini menggunakan **Island-Model Genetic Algorithm** untuk menemukan sekumpulan rute alternatif yang tidak hanya pendek (optimal), tetapi juga memiliki keragaman spasial (dissimilarity) yang tinggi satu sama lain.
+**MIBGA** adalah implementasi Python untuk menyelesaikan masalah *K-Most Diverse Near-Shortest Paths* (KMDNSP) pada jaringan jalan (road networks). Proyek ini menggunakan **Island-Model Genetic Algorithm** untuk menemukan sekumpulan rute alternatif yang tidak hanya pendek (optimal), tetapi juga memiliki keragaman spasial (dissimilarity) yang tinggi satu sama lain.
 
 Sistem ini dirancang untuk bekerja dengan data jaringan jalan dalam format Excel, CSV, atau Edgelist dan menyediakan visualisasi interaktif menggunakan **Plotly**.
 
