@@ -41,7 +41,8 @@ def find_kmdnsp(all_paths: List[PathSolution], k: int, shortest_path_len: float,
     best_set = []
     max_diversity = -1.0
     
-    search_space = unique_paths if len(unique_paths) < 20 else sorted(unique_paths, key=lambda x: x.fitness, reverse=True)[:20]
+    # UPDATED: Batas pencarian ditingkatkan menjadi 30 (Sesuai Paper)
+    search_space = unique_paths if len(unique_paths) < 30 else sorted(unique_paths, key=lambda x: x.fitness, reverse=True)[:30]
 
     for combo in itertools.combinations(search_space, k):
         div = calculate_set_diversity(list(combo))

@@ -1,6 +1,5 @@
 import time
 import random
-import math
 from typing import List, Dict
 from graph_handler import GraphHandler
 from path_solution import PathSolution
@@ -15,13 +14,12 @@ class MIBGA:
         self.K_paths = K_paths
         self.epsilon = epsilon_threshold
         
-        # Parameter sesuai Paper Section 4.3
         self.pop_size = 250 
-        self.selection_threshold = 0.10 # E% (Top 10%)
+        self.selection_threshold = 0.10
         self.min_island_size = 5
         self.max_island_size = 15
         self.mutation_prob = 0.05
-        self.timeout = 120 # Seconds
+        self.timeout = 120 
         
         self.start_time = 0.0
         self.shortest_path_len = 0.0
@@ -32,39 +30,30 @@ class MIBGA:
     def _initialize_population(self):
         print(f"Initializing population ({self.pop_size})...")
         attempts = 0
-        # Limit attempts to avoid infinite loops if graph is disconnected
         while len(self.initial_population) < self.pop_size and attempts < self.pop_size * 50:
             p = PathSolution.create_random_path(self.S_node, self.T_node, self.graph)
             
-            # --- PERBAIKAN: Handle None return ---
             if p is None:
                 attempts += 1
                 continue
-            # -------------------------------------
 
             p.calculate_length()
             p.calculate_fitness()
             
-            # Pastikan valid dan belum ada di populasi
             if p.length != float('inf') and p.get_hash() not in self.all_found_paths:
                 self.initial_population.append(p)
                 self.all_found_paths[p.get_hash()] = p
             attempts += 1
             
         if len(self.initial_population) == 0:
-            print("[CRITICAL] Could not create any valid path. Start/Target might be disconnected or too far for random walk.")
+            print("[CRITICAL] Could not create any valid path. Start/Target might be disconnected.")
 
     def _island_formation(self):
-        """
-        Implements Algorithm 1: Island Formation Strategy.
-        Dynamically chunks population into islands of variable sizes.
-        """
-        # 1. Sort Population by Fitness
         sorted_pop = sorted(self.initial_population, key=lambda x: x.fitness, reverse=True)
         
         cutoff_idx = int(len(sorted_pop) * self.selection_threshold)
         superior_pool = sorted_pop[:cutoff_idx]
-        central_pool = list(sorted_pop) # Copy of all
+        central_pool = list(sorted_pop)
         
         self.islands = []
         
@@ -80,8 +69,6 @@ class MIBGA:
                     last_island.P_cp.extend(central_pool)
                     if superior_pool:
                         last_island.P_sp.extend(superior_pool)
-                central_pool = []
-                superior_pool = []
                 break
             
             island_sp = []
@@ -103,12 +90,7 @@ class MIBGA:
         print(f"Formed {len(self.islands)} islands.")
 
     def _migration(self):
-        """
-        Implements Algorithm 2: Migration Strategy.
-        Swaps P_sp groups between islands based on random permutation.
-        """
-        if len(self.islands) < 2:
-            return
+        if len(self.islands) < 2: return
 
         indices = list(range(len(self.islands)))
         random.shuffle(indices)
@@ -120,9 +102,6 @@ class MIBGA:
             island.P_sp = original_sps[source_idx]
 
     def _selection_avgislandfit(self, all_offspring_by_island: List[List[PathSolution]]):
-        """
-        Implements AvgIslandFit: A multi-step selection process.
-        """
         new_islands = []
 
         for i, island in enumerate(self.islands):
@@ -137,7 +116,6 @@ class MIBGA:
             valid_offspring = [o for o in offspring if o.fitness >= avg_island_fit]
 
             combined_pool = island.P_sp + island.P_cp + valid_offspring
-            
             unique_map = {p.get_hash(): p for p in combined_pool}
             unique_pool = list(unique_map.values())
             
@@ -180,14 +158,14 @@ class MIBGA:
     def _check_termination(self) -> bool:
         return (time.time() - self.start_time) > self.timeout
 
-    def run(self) -> List[PathSolution]:
+    def run(self):
         self.start_time = time.time()
         
         self.shortest_path_len = self.graph.get_shortest_path_length(self.S_node, self.T_node)
         print(f"Shortest Path Length: {self.shortest_path_len}")
         if self.shortest_path_len == float('inf'):
             print("Target unreachable.")
-            return []
+            return [], []
 
         self._initialize_population()
         self._island_formation()
@@ -216,10 +194,13 @@ class MIBGA:
                 print(f"Gen {generation} | Unique Paths: {len(self.all_found_paths)} | Islands: {len(self.islands)}")
 
         print("Analyzing K-Most Diverse...")
+        
+        all_candidates = list(self.all_found_paths.values())
+        
         final_paths = find_kmdnsp(
-            all_paths=list(self.all_found_paths.values()),
+            all_paths=all_candidates,
             k=self.K_paths,
             shortest_path_len=self.shortest_path_len,
             epsilon=self.epsilon
         )
-        return final_paths
+        return all_candidates, final_paths

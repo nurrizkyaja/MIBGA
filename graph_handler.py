@@ -11,19 +11,14 @@ class GraphHandler:
 
         if file_path.endswith('.xlsx') or file_path.endswith('.xls'):
             self._load_from_excel(file_path)
+        elif file_path.endswith('.csv'):
+            self._load_from_csv(file_path)
         else:
             self._load_from_edgelist(file_path)
             
         print(f"Graph loaded: {self.graph.number_of_nodes()} nodes, {self.graph.number_of_edges()} edges.")
 
-    def _load_from_excel(self, file_path: str):
-        # Load Excel, asumsikan kolom index 0-4 (Start_X, Start_Y, End_X, End_Y, Dist)
-        try:
-            df = pd.read_excel(file_path, header=0)
-        except Exception as e:
-            print(f"Error reading Excel: {e}")
-            return
-
+    def _process_dataframe(self, df):
         # Helper untuk konversi string angka koma ke float
         def clean_float(val):
             if isinstance(val, str):
@@ -32,12 +27,22 @@ class GraphHandler:
 
         next_node_id = 0
         
+        # Deteksi nama kolom (adaptasi untuk variasi format)
+        cols = df.columns.str.lower()
+        if 'startnode_x' in cols: # Format CSV Arizona
+            c_sx, c_sy = 'startnode_x', 'startnode_y'
+            c_ex, c_ey = 'endnode_x', 'endnode_y'
+            c_dist = 'distance'
+        else: # Asumsi kolom index 0-4 (Format Excel default)
+            c_sx, c_sy = df.columns[0], df.columns[1]
+            c_ex, c_ey = df.columns[2], df.columns[3]
+            c_dist = df.columns[4]
+
         for _, row in df.iterrows():
             try:
-                # Ambil data raw
-                sx, sy = clean_float(row.iloc[0]), clean_float(row.iloc[1])
-                ex, ey = clean_float(row.iloc[2]), clean_float(row.iloc[3])
-                dist = clean_float(row.iloc[4])
+                sx, sy = clean_float(row[c_sx]), clean_float(row[c_sy])
+                ex, ey = clean_float(row[c_ex]), clean_float(row[c_ey])
+                dist = clean_float(row[c_dist])
                 
                 start_coord = (sx, sy)
                 end_coord = (ex, ey)
@@ -60,18 +65,22 @@ class GraphHandler:
                 
                 self.graph.add_edge(u, v, weight=dist)
                 
-            except ValueError:
-                continue # Skip baris yang error/kosong
+            except (ValueError, KeyError):
+                continue
 
-        # -- UPDATE: Baris ini dikomentari agar tidak print double di main menu --
-        # self._save_mapping_info()
+    def _load_from_excel(self, file_path: str):
+        try:
+            df = pd.read_excel(file_path, header=0)
+            self._process_dataframe(df)
+        except Exception as e:
+            print(f"Error reading Excel: {e}")
 
-    def _save_mapping_info(self):
-        # Method ini tetap ada jika sewaktu-waktu dibutuhkan untuk debug internal
-        print("\n--- Coordinate to Node ID Mapping ---")
-        for i, (coord, nid) in enumerate(self.node_mapping.items()):
-            if i >= 5: break
-            print(f"Coord {coord} -> Node ID: {nid}")
+    def _load_from_csv(self, file_path: str):
+        try:
+            df = pd.read_csv(file_path, header=0)
+            self._process_dataframe(df)
+        except Exception as e:
+            print(f"Error reading CSV: {e}")
 
     def _load_from_edgelist(self, file_path: str):
         try:
